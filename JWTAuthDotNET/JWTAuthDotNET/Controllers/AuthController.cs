@@ -1,6 +1,7 @@
 ﻿using JWTAuthDotNET.Entities;
 using JWTAuthDotNET.Models;
 using JWTAuthDotNET.Service;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ namespace JWTAuthDotNET.Controllers
         public async Task<ActionResult<User>> Register(UserDTO request)
         {
             var user = await authService.RegisterAsync(request);
-            if(user is null)
+            if (user is null)
             {
                 return BadRequest("User already exists");
             }
@@ -32,11 +33,25 @@ namespace JWTAuthDotNET.Controllers
         public async Task<ActionResult<string>> Login(UserDTO request)
         {
             var token = await authService.LoginAsync(request);
-            if(token is null)
+            if (token is null)
             {
                 return BadRequest("Invalid username or password");
             }
             return Ok(token);
+        }
+
+        [Authorize]
+        [HttpGet]
+        public IActionResult AuthenticatedOnlyEndpoint()
+        {
+            return Ok("You are authenticated!");
+        }
+
+        [Authorize("Admin")]
+        [HttpGet("admin-only")]
+        public IActionResult AdminOnlyEndpoint()
+        {
+            return Ok("You are admin!");
         }
     }
 }

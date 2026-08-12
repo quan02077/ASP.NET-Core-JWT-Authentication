@@ -48,8 +48,10 @@ namespace JWTAuthDotNET.Service
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Role, user.Role),
             };
+
             var tokenKey = configuration["AppSettings:Token"]
                 ?? throw new Exception("Chưa cấu hình AppSettings:Token trong appsettings.json!");
 
@@ -58,8 +60,8 @@ namespace JWTAuthDotNET.Service
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
 
             var tokenDescriptor = new JwtSecurityToken(
-                issuer: configuration.GetValue<string>("AppSettings: Issuer"),
-                audience: configuration.GetValue<string>("AppSettings: Audience"),
+                issuer: configuration["AppSettings:Issuer"],
+                audience: configuration["AppSettings:Audience"],
                 claims: claims,
                 expires: DateTime.UtcNow.AddDays(1),
                 signingCredentials: creds
