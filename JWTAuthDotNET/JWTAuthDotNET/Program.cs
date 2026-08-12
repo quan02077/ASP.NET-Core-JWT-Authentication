@@ -11,6 +11,8 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<UserDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<JWTAuthDotNET.Service.IAuthService, JWTAuthDotNET.Service.AuthService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

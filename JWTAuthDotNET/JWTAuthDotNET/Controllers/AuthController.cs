@@ -1,5 +1,6 @@
 ﻿using JWTAuthDotNET.Entities;
 using JWTAuthDotNET.Models;
+using JWTAuthDotNET.Service;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,55 +14,29 @@ namespace JWTAuthDotNET.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IConfiguration configuration) : ControllerBase
+    public class AuthController(IAuthService authService) : ControllerBase
     {
         public static User user = new User();
 
         [HttpPost("register")]
-        public ActionResult<User> Register(UserDTO request)
+        public async Task<ActionResult<User>> Register(UserDTO request)
         {
-            var hashedPassword = new PasswordHasher<User>().HashPassword(user, request.Password);
-            user.Username = request.Username;
-            user.PasswordHash = hashedPassword;
+            var user = await authService.RegisterAsync(request);
+            if(user is null)
+            {
+                return BadRequest("User already exists");
+            }
             return Ok(user);
         }
         [HttpPost("login")]
-        public ActionResult<string> Login(UserDTO request)
+        public async Task<ActionResult<string>> Login(UserDTO request)
         {
-            if(user.Username != request.Username)
+            var token = await authService.LoginAsync(request);
+            if(token is null)
             {
-                return BadRequest("User not found");
+                return BadRequest("Invalid username or password");
             }
-            if(new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
-            {
-                return BadRequest("Wrong password");
-            }
-            string token = CreateToken(user);
             return Ok(token);
-        }
-
-        public string CreateToken(User user)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Username)
-            };
-            var tokenKey = configuration["AppSettings:Token"]
-                ?? throw new Exception("Chưa cấu hình AppSettings:Token trong appsettings.json!");
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenKey));
-
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
-
-            var tokenDescriptor = new JwtSecurityToken(
-                issuer: configuration.GetValue<string>("AppSettings: Issuer"),
-                audience: configuration.GetValue<string>("AppSettings: Audience"),
-                claims: claims,
-                expires: DateTime.UtcNow.AddDays(1),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
         }
     }
 }
